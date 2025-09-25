@@ -19,7 +19,6 @@ struct Node{
     cout << "<"<<tag<<">"<<text<<"<"<<tag<<">"<<endl;
    }
 
-   
    void __tree__(Node x,int depth){
             for(int i = 0; i < depth * 2; i++)
                 cout << " ";
