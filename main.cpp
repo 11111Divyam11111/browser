@@ -1,48 +1,85 @@
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <vector>
-#include <typeinfo> 
-#include <queue>
+#include <stack>
+#include <cassert>
+
 using namespace std;
 
-struct Node{
-   string tag_name , text;
-   vector<Node> children;
+struct Node {
+    string tag_name, text;
+    vector<Node> children;
 
-   Node(string tag_name , string text , vector<Node> c){
-        this->tag_name = tag_name;
-        this->text = text;
-        this->children = c;
-   }
-
-   void __tagAndText__(string tag , string text){
-    cout << "<"<<tag<<">"<<text<<"<"<<tag<<">"<<endl;
-   }
-
-   void __tree__(Node x,int depth){
-            for(int i = 0; i < depth * 2; i++)
-                cout << " ";
-                __tagAndText__(x.tag_name , x.text);    
-            for(auto a : x.children){
-                __tree__(a,depth+1);
-            }
-        return;
-    }
-   
+    Node(string tag_name, string text, vector<Node> c = {}) 
+        : tag_name(tag_name), text(text), children(c) {}
 };
 
-int main(){
+// Build DOM tree
+void __TAG_OPEN__(const string& tag) {
+    cout << tag;
+}
 
-   
-    Node div4("div4","div4 inside div3",{});
-    Node div5("div5","div5 inside div3",{});
-    Node div6("div6","div6 inside div3",{});
-    Node div3("div3","div3 inside div2",{div4,div5,div6});
-    Node div2("div2","div2 inside header",{div3});
-    Node div1("div1","div1 inside header",{});
-    Node html("h1","header",{div1, div2});
-    Node root("root","root",{html});
-    root.__tree__(root,0);
+void __TEXT__(const string& text) {
+    cout << text;
+}
+
+void __TAG_CLOSE__(const string& tag) {
+    cout << tag;
+}
+
+
+void __readFile__(ifstream &file) {
+    char cur1, cur2;
+    if (!file.get(cur1)) return;
+    if (!file.get(cur2)) return;
+
+    while(file) {
+        string openTag="", text="", closeTag="";
+
+        // Opening tag
+        if(cur1 == '<' && cur2 != '/') {
+            openTag += cur1;
+            openTag += cur2;
+            while(file.get(cur2) && cur2 != '>') openTag += cur2;
+            openTag += '>';
+            __TAG_OPEN__(openTag);
+            file.get(cur1); // move to text
+        }
+
+        // Text
+        while(cur1 != '<' && file) {
+            text += cur1;
+            file.get(cur1);
+        }
+        if(!text.empty()) __TEXT__(text);
+
+        // Closing tag
+        if(cur1 == '<') {
+            file.get(cur2);
+            if(cur2 == '/') {
+                closeTag += "<";
+                closeTag += "/";
+                while(file.get(cur2) && cur2 != '>') closeTag += cur2;
+                closeTag += '>';
+                __TAG_CLOSE__(closeTag);
+                file.get(cur1); 
+            }
+        }
+    }
+}
+
+int main(int argc, char* argv[]) {
+    if(argc < 2) {
+        cout << "Usage: ./prog fileName.txt" << endl;
+        return 0;
+    }
+
+    ifstream inputFile(argv[1]);
+    assert(inputFile.is_open() && "file didn't open.");
+    __readFile__(inputFile);
+    inputFile.close();
+
 
     return 0;
 }
