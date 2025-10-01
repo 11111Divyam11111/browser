@@ -235,13 +235,15 @@ using namespace std;
     }
     
     void __DeclarationEndParser__(ifstream& file, char& c){
-        Rules.
+        Rules.rules.push_back(allRule);
         cssImp = 0;
         decla = false;
         colon  = false;
         checked = false;
         selecValue = "" , _sel.type = "" , _sel.value = "";
         _del.property = "" , _del.value = "";
+        allRule.declarations = {};
+        allRule.selectors = {};
     } 
 
 	void __CssParser(ifstream& file){
@@ -290,18 +292,21 @@ int main(int argc, char* argv[]) {
     assert(inputCssFile.is_open() && "CSS file didn't open.");
     __CssParser(inputCssFile);
     cout<<endl;
-    inputCssFile.close();
+    inputCssFile.close();   
+    cout << "----------------------------" << endl;
 
-    cout<<"-------------------------------"<<endl;
-    for(auto a : allRule.selectors){
-        cout << a.type << ' ' << a.value << endl;
-    }
+        for(auto a : Rules.rules){
+            for(auto i : a.selectors){
+                cout << "For selector " << i.type <<i.value<< " we have these properties : " << endl;
+                for(auto j : a.declarations){
+                    cout << "    ";
+                    cout << j.property << " " << j.value << " " << j.valueType << endl; 
+                }
+            }   
+        }
+   
+    cout << "----------------------------" << endl;
 
-    cout<<"-------------------------------"<<endl;
-    for(auto a : allRule.declarations){
-        cout << a.property << " : " << a.value << " " <<a.valueType << endl;
-    }
-    
     if(root == nullptr) cout << "No Tree Found." << endl;
     else {
         cout << "\033[41;37;1m HTML Parser \033[0m" << endl;

@@ -1,11 +1,13 @@
-
-	
 h1{
     color: #abc;
     text-decoration: underline;
 }
-
 *{
     margin: 10px;
     font-weight: 400;
+}
+#tts{
+    padding-left: 12%;
+    padding-right: 10%;
+    font-style: normal;
 }
