@@ -9,33 +9,35 @@
 #include <algorithm>
 #include <cstdint>
 #include <regex>
+#include <sstream>
+#include <SFML/Window.hpp>
+#include <SFML/Graphics.hpp>
 using namespace std;
+using namespace sf;
 
-// -------------------------HTML PARSER-------------------------
-        string trimAndReduceSpaces(const string& str) {
-            string result;
-            bool spaceEncountered = false;
+// -------------------------HTML PARSER-------------------------   
 
-            // Remove leading spaces
-            size_t firstChar = str.find_first_not_of(" \t\n\r\f\v");
-            if (string::npos == firstChar) {
-                return ""; // Entire string is whitespace
-            }
-            string trimmedStr = str.substr(firstChar);
-
-            // Remove trailing spaces and reduce multiple internal spaces to single spaces
-            for (char c : trimmedStr) {
-                if (isspace(static_cast<unsigned char>(c))) {
-                    spaceEncountered = true;
-                } else {
-                    if (spaceEncountered) {
-                        result += ' '; // Add a single space if a sequence of spaces was found
-                        spaceEncountered = false;
+        pair<string,int> wrap(auto text, size_t line_length)
+        {
+            std::istringstream words(text);
+            std::ostringstream wrapped;
+            std::string word;
+            int bwords = 0;
+            if (words >> word) {
+                wrapped << word;
+                size_t space_left = line_length - word.length();
+                while (words >> word) {
+                    bwords++;
+                    if (space_left < word.length() + 1) {
+                        wrapped << '\n' << word;
+                        space_left = line_length - word.length();
+                    } else {
+                        wrapped << ' ' << word;
+                        space_left -= word.length() + 1;
                     }
-                    result += c;
                 }
             }
-            return result;
+            return {wrapped.str(),bwords+1};
         }
 
         struct Node {
@@ -105,15 +107,7 @@ using namespace std;
             }   
         }
 
-        void __PrintDOMTree__(Node* x,int depth){
-            auto value = trimAndReduceSpaces(x->text);
-            cout << "\033[31m"+value+"\033[0m";
-            for(auto a : x->children){
-                __PrintDOMTree__(a,depth+1);
-            }          
-
-            if(!x->tag_name.empty() && !x->text.empty()) cout << endl;
-        }
+       
 
         void deleteTree(Node* node) {
             if (!node) return;
@@ -275,6 +269,7 @@ using namespace std;
 
 // ---------------------------CSS PARSER-------------------------
 
+
 int main(int argc, char* argv[]) {
     if(argc < 3) {
         cout << "Usage: ./prog fileName.txt" << endl;
@@ -307,11 +302,77 @@ int main(int argc, char* argv[]) {
    
     cout << "----------------------------" << endl;
 
-    if(root == nullptr) cout << "No Tree Found." << endl;
-    else {
-        cout << "\033[41;37;1m HTML Parser \033[0m" << endl;
-        __PrintDOMTree__(root,0);
-    }cout<<endl;
+    if(root == nullptr){ cout << "No Tree Found." << endl; return 0;}
+
+
+//------------------------------------------SFML------------------------------------------
+    sf::Font font;
+    if (!font.loadFromFile("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf")) {
+        std::cerr << "Could not load font!" << std::endl;
+        return -1;
+    }
+
+    std::vector<pair<sf::Text,int>> texts;
+ 
+    sf::RenderWindow window(sf::VideoMode(1920,1080), "Browser");
+    float y = 20.f; 
+    sf::Vector2u size = window.getSize();
+    int width = size.x;
+    function<void(Node*, int)> __PrintDOMTree__ = [&](Node* x, int depth) {
+        // screen size width = 1920 , max number of char in 1 line = 190
+        // t = fontSize*2 + charParLine <= 190
+        // x = 0.1*fontSize + 0.1*charParLine
+        // total lines = t/x
+        int fontSize = 25; 
+        int charPerLine = (width/10) - 2*fontSize;
+        int lineSpace = 15;
+        pair<string,int> strWord = wrap(x->text,charPerLine);
+        auto value = strWord.first;
+        int numOfWords = strWord.second;
+        int totalChars = numOfWords * 2;
+        if (!value.empty()) {
+            if(x->tag_name == "h1"){
+                sf::Text t(value, font, 35);
+                t.setFillColor(sf::Color::Red);
+                t.setStyle(sf::Text::Bold | sf::Text::Underlined);
+                int totalLine = (totalChars*4)/charPerLine;
+                if(totalLine == 0) totalLine++;
+                t.setPosition(860.0f, y);    
+                y += totalLine * 1.0f * (lineSpace+fontSize);  
+                texts.push_back({t, numOfWords});
+            }
+            else{
+                sf::Text t(value, font, fontSize);
+                t.setFillColor(sf::Color::Black);
+                int totalLine = (totalChars*4)/charPerLine;
+                if(totalLine == 0) totalLine++;
+                t.setPosition(10.f, y);    
+                y += totalLine * 1.0f * (lineSpace+fontSize-totalLine-1);  
+                texts.push_back({t, numOfWords});
+            }
+        }
+        for (auto a : x->children) {
+            __PrintDOMTree__(a, depth + 1);
+        }
+    };
+
+    __PrintDOMTree__(root, 0);
+    cout << "Number of different text/para : " << texts.size() << endl;
+    while (window.isOpen()) {
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == sf::Event::Closed)
+                window.close();
+        }
+
+        window.clear(sf::Color::White);
+        for (auto& t : texts)
+            window.draw(t.first);
+        window.display();
+    }
+
+
+//------------------------------------------SFML------------------------------------------
 
     deleteTree(root);
     root = nullptr;
