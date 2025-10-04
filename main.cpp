@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <variant>
-#include <optional>
 #include <string>
 #include <vector>
 #include <stack>
@@ -10,10 +9,9 @@
 #include <cstdint>
 #include <regex>
 #include <sstream>
-#include <SFML/Window.hpp>
+#include <unordered_map>
 #include <SFML/Graphics.hpp>
 using namespace std;
-using namespace sf;
 
 // -------------------------HTML PARSER-------------------------   
 
@@ -269,6 +267,35 @@ using namespace sf;
 
 // ---------------------------CSS PARSER-------------------------
 
+void applyStyle(string tag , sf::Text& t , vector<pair<string,string>> s){
+    for(auto val : s){
+        if (val.second == "color") {
+            string clr = val.first;
+            clr.erase(clr.begin());
+            string str = clr;
+            int r, g, b;
+            sscanf(str.c_str(), "%02x%02x%02x", &r, &g, &b);
+            sf::Uint8 R = r;
+            sf::Uint8 G = b;
+            sf::Uint8 B = b;
+            t.setFillColor(sf::Color{R,G,B});
+        } 
+        else if (val.second == "text-decoration") {
+            if(val.first == "underline"){
+                t.setStyle(sf::Text::Underlined);
+            }else if(val.first == "line-through"){
+                t.setStyle(sf::Text::StrikeThrough);
+            }
+        } 
+        else if (val.second == "font-size") {
+            string sz = val.first;
+            sz.erase(sz.size()-1);
+            sz.erase(sz.size()-1);
+            int m = stoi(sz);
+            t.setCharacterSize(m);
+        } 
+    }
+}
 
 int main(int argc, char* argv[]) {
     if(argc < 3) {
@@ -288,22 +315,13 @@ int main(int argc, char* argv[]) {
     __CssParser(inputCssFile);
     cout<<endl;
     inputCssFile.close();   
-    cout << "----------------------------" << endl;
 
-        for(auto a : Rules.rules){
-            for(auto i : a.selectors){
-                cout << "For selector " << i.type <<i.value<< " we have these properties : " << endl;
-                for(auto j : a.declarations){
-                    cout << "    ";
-                    cout << j.property << " " << j.value << " " << j.valueType << endl; 
-                }
-            }   
-        }
+    cout << "----------------------------" << endl;
+        
    
     cout << "----------------------------" << endl;
-
+   
     if(root == nullptr){ cout << "No Tree Found." << endl; return 0;}
-
 
 //------------------------------------------SFML------------------------------------------
     sf::Font font;
@@ -313,11 +331,22 @@ int main(int argc, char* argv[]) {
     }
 
     std::vector<pair<sf::Text,int>> texts;
+
+    unordered_map<string,vector<pair<string,string>>> styles;
+    for(auto r : Rules.rules){
+        for(auto s : r.selectors){
+            for(auto d : r.declarations){
+                styles[s.value].push_back({d.value,d.property});
+            }
+        }
+    }
+   
  
     sf::RenderWindow window(sf::VideoMode(1920,1080), "Browser");
     float y = 20.f; 
     sf::Vector2u size = window.getSize();
     int width = size.x;
+    int height = size.y;
     function<void(Node*, int)> __PrintDOMTree__ = [&](Node* x, int depth) {
         // screen size width = 1920 , max number of char in 1 line = 190
         // t = fontSize*2 + charParLine <= 190
@@ -330,23 +359,38 @@ int main(int argc, char* argv[]) {
         auto value = strWord.first;
         int numOfWords = strWord.second;
         int totalChars = numOfWords * 2;
-        if (!value.empty()) {
-            if(x->tag_name == "h1"){
+        if (!value.empty()) { 
+            if(x->tag_name[0] == 'h'){
                 sf::Text t(value, font, 35);
-                t.setFillColor(sf::Color::Red);
-                t.setStyle(sf::Text::Bold | sf::Text::Underlined);
+                //--------------Styling--------------                   
+                    if(x->tag_name[1] == '2') t.setCharacterSize(30);
+                    if(x->tag_name[1] == '3') t.setCharacterSize(27);
+                    if(x->tag_name[1] == '4') t.setCharacterSize(24);
+                    if(x->tag_name[1] == '5') t.setCharacterSize(21);
+                    if(!styles[x->tag_name].empty()){
+                        applyStyle(x->tag_name,t,styles[x->tag_name]);
+                    }
+                    t.setStyle(sf::Text::Bold);
+
+                //--------------Styling--------------
+
                 int totalLine = (totalChars*4)/charPerLine;
                 if(totalLine == 0) totalLine++;
-                t.setPosition(860.0f, y);    
+                t.setPosition(width/2.f, y);    
                 y += totalLine * 1.0f * (lineSpace+fontSize);  
                 texts.push_back({t, numOfWords});
             }
             else{
-                sf::Text t(value, font, fontSize);
-                t.setFillColor(sf::Color::Black);
+                //--------------Styling--------------
+                    sf::Text t(value, font, fontSize);
+                    if(!styles[x->tag_name].empty()){
+                        applyStyle(x->tag_name,t,styles[x->tag_name]);
+                    }                    
+                //--------------Styling--------------
+
                 int totalLine = (totalChars*4)/charPerLine;
                 if(totalLine == 0) totalLine++;
-                t.setPosition(10.f, y);    
+                t.setPosition(30, y);    
                 y += totalLine * 1.0f * (lineSpace+fontSize-totalLine-1);  
                 texts.push_back({t, numOfWords});
             }
@@ -355,6 +399,7 @@ int main(int argc, char* argv[]) {
             __PrintDOMTree__(a, depth + 1);
         }
     };
+  
 
     __PrintDOMTree__(root, 0);
     cout << "Number of different text/para : " << texts.size() << endl;
@@ -365,7 +410,7 @@ int main(int argc, char* argv[]) {
                 window.close();
         }
 
-        window.clear(sf::Color::White);
+        window.clear();
         for (auto& t : texts)
             window.draw(t.first);
         window.display();
@@ -378,4 +423,4 @@ int main(int argc, char* argv[]) {
     root = nullptr;
 
     return 0;
-}
+} 
