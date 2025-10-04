@@ -1,5 +1,9 @@
+/* SHOD BHANGRA */
+
 h1{
-    color: #e00b2b;
-    text-decoration:line-through;
-    font-size : 45px;
+    text-decoration:underline; 
+    font-size : 40px; 
+}
+p{
+    color : #ffff00;
 }

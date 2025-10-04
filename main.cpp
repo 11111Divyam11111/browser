@@ -172,12 +172,11 @@ using namespace std;
 
     // ---------------------------CSS VALUES---------------------------
 
+    void __CssComment__(ifstream& file , char& c){
+        while(c != '/') file>>c;
+    }
 
 	void __SelectorParser__(ifstream& file,char& c){
-        if(_sel.type == ""){ 
-            string s = __selectorType__(c);
-            _sel.type = s;
-        }
         selecValue += c;
 	}
 	
@@ -196,10 +195,12 @@ using namespace std;
     }
     
     void __ValueParser__(ifstream& file , char& c){
+       
         val += c;
     }
 
     void __PropertyValueEnded__(ifstream& file, char& c) {
+      
         colon = false;
         cssImp++;
 
@@ -238,10 +239,16 @@ using namespace std;
         allRule.selectors = {};
     } 
 
+    
+
 	void __CssParser(ifstream& file){
 		char c;
 		while(file){
 			file >> c;
+            if(c == '/'){
+                __CssComment__(file,c);
+                file>>c;
+            }
 			if(c != '{' && decla == false){ 
                 __SelectorParser__(file,c);
             }
@@ -267,8 +274,8 @@ using namespace std;
 
 // ---------------------------CSS PARSER-------------------------
 
-void applyStyle(string tag , sf::Text& t , vector<pair<string,string>> s){
-    for(auto val : s){
+void applyStyle(sf::Text& t , vector<pair<string,string>>& s){
+    for(auto& val : s){
         if (val.second == "color") {
             string clr = val.first;
             clr.erase(clr.begin());
@@ -280,14 +287,14 @@ void applyStyle(string tag , sf::Text& t , vector<pair<string,string>> s){
             sf::Uint8 B = b;
             t.setFillColor(sf::Color{R,G,B});
         } 
-        else if (val.second == "text-decoration") {
+        if (val.second == "text-decoration") {
             if(val.first == "underline"){
                 t.setStyle(sf::Text::Underlined);
             }else if(val.first == "line-through"){
                 t.setStyle(sf::Text::StrikeThrough);
             }
         } 
-        else if (val.second == "font-size") {
+        if (val.second == "font-size") {
             string sz = val.first;
             sz.erase(sz.size()-1);
             sz.erase(sz.size()-1);
@@ -297,6 +304,7 @@ void applyStyle(string tag , sf::Text& t , vector<pair<string,string>> s){
     }
 }
 
+ 
 int main(int argc, char* argv[]) {
     if(argc < 3) {
         cout << "Usage: ./prog fileName.txt" << endl;
@@ -315,12 +323,6 @@ int main(int argc, char* argv[]) {
     __CssParser(inputCssFile);
     cout<<endl;
     inputCssFile.close();   
-
-    cout << "----------------------------" << endl;
-        
-   
-    cout << "----------------------------" << endl;
-   
     if(root == nullptr){ cout << "No Tree Found." << endl; return 0;}
 
 //------------------------------------------SFML------------------------------------------
@@ -329,32 +331,34 @@ int main(int argc, char* argv[]) {
         std::cerr << "Could not load font!" << std::endl;
         return -1;
     }
-
+    
     std::vector<pair<sf::Text,int>> texts;
 
     unordered_map<string,vector<pair<string,string>>> styles;
     for(auto r : Rules.rules){
-        for(auto s : r.selectors){
-            for(auto d : r.declarations){
-                styles[s.value].push_back({d.value,d.property});
+            for(auto s : r.selectors){
+                for(auto d : r.declarations){
+                    styles[s.value].push_back({d.value,d.property});
             }
         }
-    }
+    }   
+
+
    
- 
     sf::RenderWindow window(sf::VideoMode(1920,1080), "Browser");
     float y = 20.f; 
     sf::Vector2u size = window.getSize();
     int width = size.x;
     int height = size.y;
-    function<void(Node*, int)> __PrintDOMTree__ = [&](Node* x, int depth) {
+    int fontSize = 25;
+    
+    function<void(Node*, int)> __PrintDOMTree__ = [&](Node* x, int depth  ) {
         // screen size width = 1920 , max number of char in 1 line = 190
         // t = fontSize*2 + charParLine <= 190
         // x = 0.1*fontSize + 0.1*charParLine
         // total lines = t/x
-        int fontSize = 25; 
         int charPerLine = (width/10) - 2*fontSize;
-        int lineSpace = 15;
+        int lineSpace = 20;
         pair<string,int> strWord = wrap(x->text,charPerLine);
         auto value = strWord.first;
         int numOfWords = strWord.second;
@@ -367,30 +371,27 @@ int main(int argc, char* argv[]) {
                     if(x->tag_name[1] == '3') t.setCharacterSize(27);
                     if(x->tag_name[1] == '4') t.setCharacterSize(24);
                     if(x->tag_name[1] == '5') t.setCharacterSize(21);
-                    if(!styles[x->tag_name].empty()){
-                        applyStyle(x->tag_name,t,styles[x->tag_name]);
-                    }
+                    applyStyle(t,styles[x->tag_name]);                   
                     t.setStyle(sf::Text::Bold);
 
                 //--------------Styling--------------
 
                 int totalLine = (totalChars*4)/charPerLine;
                 if(totalLine == 0) totalLine++;
-                t.setPosition(width/2.f, y);    
+                t.setPosition(10.f, y);    
                 y += totalLine * 1.0f * (lineSpace+fontSize);  
                 texts.push_back({t, numOfWords});
             }
             else{
                 //--------------Styling--------------
-                    sf::Text t(value, font, fontSize);
-                    if(!styles[x->tag_name].empty()){
-                        applyStyle(x->tag_name,t,styles[x->tag_name]);
-                    }                    
+                    sf::Text t(value, font, fontSize);                    
+                    applyStyle(t,styles[x->tag_name]);
+                                   
                 //--------------Styling--------------
 
                 int totalLine = (totalChars*4)/charPerLine;
                 if(totalLine == 0) totalLine++;
-                t.setPosition(30, y);    
+                t.setPosition(40.f, y);    
                 y += totalLine * 1.0f * (lineSpace+fontSize-totalLine-1);  
                 texts.push_back({t, numOfWords});
             }
@@ -398,22 +399,69 @@ int main(int argc, char* argv[]) {
         for (auto a : x->children) {
             __PrintDOMTree__(a, depth + 1);
         }
-    };
-  
+    }; 
 
-    __PrintDOMTree__(root, 0);
-    cout << "Number of different text/para : " << texts.size() << endl;
+    __PrintDOMTree__(root,0);
+    sf::RectangleShape rect(sf::Vector2f(20,20));
+    rect.setFillColor(sf::Color::Transparent);
+    float moveSpeed = 5.f;
+    sf::Vector2f position(1920,0); 
+    sf::View view;
+    view.reset(sf::FloatRect(0,0,width,height));
+    view.setViewport(sf::FloatRect(0,0,1.f,1.f));
+    sf::Clock clock;
     while (window.isOpen()) {
+        sf::Vector2u size = window.getSize();
+        int width = size.x;
+        int height = size.y;
         sf::Event event;
         while (window.pollEvent(event)) {
+            if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape)){
+                window.close();
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)){
+                float x = rect.getPosition().x;
+                if(x + moveSpeed <= width){
+                    rect.move(moveSpeed * clock.getElapsedTime().asSeconds(),0);
+                }
+            }  
+            if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left)){
+                float x = rect.getPosition().x;
+                if(x + moveSpeed > 0){
+                    rect.move(-moveSpeed * clock.getElapsedTime().asSeconds(),0);
+                }
+            }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)){               
+                rect.move(0,moveSpeed * clock.getElapsedTime().asSeconds()) ;
+            }  
+            if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)){
+                float y = rect.getPosition().y;
+                if(y + moveSpeed > 0){
+                    rect.move(0,-moveSpeed * clock.getElapsedTime().asSeconds()) ;
+                }
+            }         
+            
+
             if (event.type == sf::Event::Closed)
                 window.close();
         }
 
-        window.clear();
+      
+        position.x = rect.getPosition().x + 10 - (width/8);
+        position.y = rect.getPosition().y + 10 - (height/8);
+
+        if(position.x < 0) position.x = 0;
+        if(position.y < 0) position.y = 0;
+
+        view.reset(sf::FloatRect(position.x,position.y,width,height));
+
+        window.setView(view);
+         window.draw(rect);
         for (auto& t : texts)
             window.draw(t.first);
+       
         window.display();
+        window.clear();
     }
 
 
