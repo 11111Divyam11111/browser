@@ -29,20 +29,23 @@ public:
         vector<Rule> rules;
     };
 
-    
-    string __selectorType__(char c) const;
-    void __CssComment__(istream& file, char& c);
-    void __SelectorParser__(istream& file, char& c);
-    void __DeclarationsParser__(istream& file, char& c);
-    void __PropertyParser__(istream& file, char& c);
-    void __PropertyValueSeparator__(istream& file, char& c);
-    void __ValueParser__(istream& file, char& c);
-    void __PropertyValueEnded__(istream& file, char& c);
-    void __DeclarationEndParser__(istream& file, char& c);
-
-    void __CssParser__(istream& file);
-
   
+    string __selectorType__(char c) const;
+
+    
+    void __CssComment__(const string& s, size_t& i);
+    void __SelectorParser__(const string& s, size_t& i);
+    void __DeclarationsParser__(const string& s, size_t& i);
+    void __PropertyParser__(const string& s, size_t& i);
+    void __PropertyValueSeparator__(const string& s, size_t& i);
+    void __ValueParser__(const string& s, size_t& i);
+    void __PropertyValueEnded__(const string& s, size_t& i);
+    void __DeclarationEndParser__(const string& s, size_t& i);
+
+   
+    void __CssParser__(const string& s);
+
+   
     StyleSheet Rules;
 
 private:
@@ -51,8 +54,7 @@ private:
     string selecValue = "", prop = "", val = "", decValueType;
     Selector _sel;
     Declaration _del;
-    Rule allRule;
-  
+    Rule allRule;   
     regex plainNumber = regex("^[0-9]+$");
     regex numberWithUnit = regex("^[0-9]+(px|em|%)$");
     regex hexColor = regex("^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$");

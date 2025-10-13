@@ -12,9 +12,11 @@
 #include <chrono>
 #include <unordered_map>
 #include <SFML/Graphics.hpp>
-
+#define SFML_DEFINE_DISCRETE_GPU_PREFERENCE
 #include "./headers/html.h"
 #include "./headers/css.h"
+#include "./headers/helpers.h"
+
 using namespace std;
 
 void applyStyle(sf::Text& t , vector<pair<string,string>>& s){
@@ -53,18 +55,31 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    Helpers help;
+
     // html file
     Node node;
     ifstream inputFile(argv[1]);
     assert(inputFile.is_open() && "HTML file didn't open.");
-    node.__readFile__(inputFile);
+    string fileHtml = help.__CovertStreamToString__(inputFile);
+    const auto start = chrono::steady_clock::now();
+    node.__readFile__(fileHtml);
+    const auto end = chrono::steady_clock::now();
+    chrono::duration<double> elapsed = end - start;
+    cout << "String Time in seconds: " << fixed << elapsed.count() << '\n';   
     inputFile.close();
+
 
     // css file
     CSS css;
     ifstream inputCssFile(argv[2]);
     assert(inputCssFile.is_open() && "CSS file didn't open.");
-    css.__CssParser__(inputCssFile);
+    string fileCss = help.__CovertStreamToString__(inputCssFile);
+    const auto start1 = chrono::steady_clock::now();
+    css.__CssParser__(fileCss);
+    const auto end1 = chrono::steady_clock::now();
+    chrono::duration<double> elapsed1 = end1 - start1;
+    cout << "CSS Time in seconds: " << fixed << elapsed1.count() << '\n';   
     inputCssFile.close();   
     if(node.root == nullptr){ cout << "No Tree Found." << endl; return 0;}
 
@@ -84,19 +99,33 @@ int main(int argc, char* argv[]) {
                     styles[s.value].push_back({d.value,d.property});
             }
         }
-    }   
-   
+    }  
+    
+    int fontSize = 25;
+    for(auto r : css.Rules.rules){
+            for(auto s : r.selectors){
+                cout << "For " << s.type << s.value << " : " << endl;
+               
+                for(auto d : r.declarations){
+                cout << "    ";
+                cout << d.property << " : " << d.value <<"{'" << d.valueType<<"'}" << endl;                    
+                if(s.type == "Universal" and d.property=="font-size"){
+                    fontSize = stoi(d.value);
+                }
+            }
+        }
+    }       
+    
     sf::RenderWindow window(sf::VideoMode(1920,1080), "Browser");
     float y = 20.f; 
     sf::Vector2u size = window.getSize();
     int width = size.x;
-    int height = size.y;
-    int fontSize = 25;
+    int height = size.y;  
         
    
     node.__PrintDOMTree__(node.root,0,width,styles,y,texts,font,fontSize);
     sf::Texture texture;
-    if (!texture.loadFromFile("me.png", sf::IntRect(0, 0, 32, 32))) {
+    if (!texture.loadFromFile("me.png", sf::IntRect(0, 0, 1, 1))) {
         return 0;
     }
     texture.setSmooth(true); 
@@ -129,8 +158,10 @@ int main(int argc, char* argv[]) {
                     rect.move(-moveSpeed * clock.getElapsedTime().asSeconds(),0);
                 }
             }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)){               
-                rect.move(0,moveSpeed * clock.getElapsedTime().asSeconds()) ;
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)){
+                float x = rect.getPosition().y;      
+                float y1 = y + 5.f;          
+                if(x + moveSpeed <= y1)rect.move(0,moveSpeed * clock.getElapsedTime().asSeconds()) ;
             }  
             if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)){
                 float y = rect.getPosition().y;
@@ -140,8 +171,7 @@ int main(int argc, char* argv[]) {
             }         
             if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Backspace)){
                 rect.setPosition(0,0);
-            }
-
+            }           
             if (event.type == sf::Event::Closed)
                 window.close();
         }
@@ -152,6 +182,8 @@ int main(int argc, char* argv[]) {
 
         if(position.x < 0) position.x = 0;
         if(position.y < 0) position.y = 0;
+        if(position.y > y) position.y = y;
+        if(position.x > width+20.f) position.x = width+20.f;
 
         view.reset(sf::FloatRect(position.x,position.y,width,height));
 

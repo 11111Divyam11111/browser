@@ -1,9 +1,31 @@
-/* SHOD BHANGRA */
+/* The global values should be kept at first */
+/* Put the color value in hex value only */
 
-h1{
-    text-decoration:underline; 
-    font-size : 40px; 
+
+*{
+    color : #0f12a5;
+    font-size: 15px;
 }
-p{
-    color : #ffff00;
+h1{
+    text-decoration:underline;     
+    font-size : 40px; 
+    color : #000000;
+}
+h2{
+    font-size: 37px;
+    color : #000000;
+}
+h3{
+    font-size: 34px;
+    color : #000000;
+}
+
+h4{
+    font-size: 31px;
+    color : #000000;
+}
+
+h5{
+    font-size: 28px;
+    color : #000000;
 }
