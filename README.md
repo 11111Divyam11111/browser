@@ -41,11 +41,9 @@ A lightweight, custom-built browser rendering engine written in C++ that parses 
  Selectors
 - Universal selector (``)
 - Tag selectors (`h1`, `h2`, `h3`, `h4`, `h5`, `p`, `div`)
-- Class selectors (`.className`)
-- ID selectors (`idName`)
 
  Properties
-- `color`: Hex color values (`RRGGBB` or `RGB`)
+- `color`: Hex color values (`RRGGBB` )
 - `font-size`: Pixel units (`px`)
 - `text-decoration`: `underline`, `line-through`
 
@@ -134,13 +132,13 @@ g++ -std=c++17 main.cpp src/html.cpp src/css.cpp src/helpers.cpp \
  🎨 Sample CSS Rules
 
 ```css
-/ Global styles /
- {
+
+*{
     color: 0f12a5;
     font-size: 15px;
 }
 
-/ Heading styles /
+
 h1 {
     text-decoration: underline;
     font-size: 40px;
@@ -172,7 +170,7 @@ h1 {
 
  Universal Selector
 ```css
- {
+ *{
     font-size: 15px;
     color: 0f12a5;
 }
@@ -180,7 +178,7 @@ h1 {
 
  🚧 Limitations
 
-- No support for CSS classes/IDs in HTML attributes (only selector matching)
+- No support for CSS classes/IDs
 - Limited CSS property support (color, font-size, text-decoration)
 - No inline styles or style attribute parsing
 - No CSS cascade/specificity calculation
@@ -224,7 +222,7 @@ This project demonstrates understanding of:
 
 ---
 
-Author: Built as a demonstration of browser internals and low-level systems programming  
+Built as a demonstration of browser internals and low-level systems programming  
 Language: C++17  
 Graphics: SFML 2.5+  
 License: Educational/Portfolio Project
